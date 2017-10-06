@@ -13,7 +13,9 @@ from lib.utils import find_port
 from test import TestRunGreenlet
 
 def run_server(execs, cwd, server):
-    server.process = Popen(execs, stdout=PIPE, stderr=PIPE, cwd=cwd)
+    env = os.environ.copy()
+    env["TEST_SUITE"] = server.test_suite.suite_path
+    server.process = Popen(execs, stdout=PIPE, stderr=PIPE, cwd=cwd, env=env)
     stdout, stderr = server.process.communicate()
     sys.stdout.write(stdout)
     if server.process.wait() != 0:
@@ -56,6 +58,7 @@ class AppServer(Server):
         self.builddir = ini['builddir']
         self.debug = False
         self.lua_libs = ini['lua_libs']
+        self.requirements = ini['requirements']
         self.name = 'app_server'
         self.process = None
 
@@ -69,14 +72,40 @@ class AppServer(Server):
         if self.lua_libs:
             for i in self.lua_libs:
                 source = os.path.join(self.testdir, i)
+                if os.path.basename(source):
+                    dst = os.path.join(self.vardir, os.path.basename(source))
+                else:
+                    basedirname = source.split('/')[-1]
+                    if not basedirname:
+                        basedirname = source.split('/')[-2]
+                    dst = os.path.join(self.vardir, basedirname)
                 try:
                     if os.path.isdir(source):
-                        shutil.copytree(source,
-                                os.path.join(self.vardir,
-                                             os.path.basename(source)))
+                        shutil.copytree(source, dst)
                     else:
                         shutil.copy(source, self.vardir)
                 except IOError as e:
+                    print e
+                    if (e.errno == errno.ENOENT):
+                        continue
+                    raise
+        if self.requirements:
+            for i in self.requirements:
+                source = os.path.join(self.testdir, i)
+                if os.path.basename(source):
+                    dst = os.path.join(self.vardir, os.path.basename(source))
+                else:
+                    basedirname = source.split('/')[-1]
+                    if not basedirname:
+                        basedirname = source.split('/')[-2]
+                    dst = os.path.join(self.vardir, basedirname)
+                try:
+                    if os.path.isdir(source):
+                        shutil.copytree(source, dst)
+                    else:
+                        shutil.copy(source, self.vardir)
+                except IOError as e:
+                    print e
                     if (e.errno == errno.ENOENT):
                         continue
                     raise

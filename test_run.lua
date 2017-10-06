@@ -97,7 +97,8 @@ local create_cluster_cmd2 = 'start server %s'
 local function create_cluster(self, servers)
     -- TODO: use the name of test suite instead of 'replication/'
     for _, name in ipairs(servers) do
-        self:cmd(create_cluster_cmd1:format(name, 'replication', name))
+        local server_start_path = os.getenv('TEST_SUITE') .. '/servers'
+        self:cmd(create_cluster_cmd1:format(name, server_start_path, name))
         self:cmd(create_cluster_cmd2:format(name))
     end
 end
@@ -109,6 +110,18 @@ local function drop_cluster(self, servers)
     for _, name in ipairs(servers) do
         self:cmd(drop_cluster_cmd1:format(name))
         self:cmd(drop_cluster_cmd2:format(name))
+    end
+end
+
+local set_env_variable_cmd = [[env %s="%s"]]
+
+local function set_cluster_environment(self, env_dict)
+    if type(env_dict) ~= 'table' then
+        log.error('environment must be a Lua table')
+        return nil
+    end
+    for name, val in pairs(env_dict) do
+        self:cmd(set_env_variable_cmd:format(name, val))
     end
 end
 
@@ -280,6 +293,7 @@ local inspector_methods = {
     wait_fullmesh = wait_fullmesh,
     get_cluster_vclock = get_cluster_vclock,
     wait_cluster_vclock = wait_cluster_vclock,
+    set_cluster_environment = set_cluster_environment,
     --
     grep_log = grep_log,
 }
