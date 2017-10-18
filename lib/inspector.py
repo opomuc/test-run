@@ -98,6 +98,7 @@ class TarantoolInspector(StreamServer):
                     traceback.format_exc() + '\n', schema='error')
                 result = { "error": repr(e) }
                 self.parser.kill_current_test()
+                self.parser.stop_nondefault()
             if result == None:
                 result = True
             result = yaml.dump(result)
